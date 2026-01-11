@@ -3,9 +3,7 @@
 import { Button } from '@/components/ui/button'
 import { CheckCircle } from 'lucide-react'
 import Link from 'next/link'
-import Confetti from 'react-confetti' // Optional, but let's just use CSS for now if no pkg
 import { useEffect, useState } from 'react'
-import { useWindowSize } from 'react-use' // Need to install if used, let's skip for simple UI
 
 export default function CheckoutSuccessPage() {
     return (

@@ -3,13 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Loader2, Package, CheckCircle, Clock, Truck } from 'lucide-react'
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select" // Assuming we have or will simple HTML select for now if UI component missing
+// Imports removed
 
 // We'll use a standard HTML select for simplicity if shadcn component isn't fully installed,
 // but let's try to stick to clean UI.

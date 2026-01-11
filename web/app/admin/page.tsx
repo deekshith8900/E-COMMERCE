@@ -151,7 +151,7 @@ export default function AdminDashboard() {
                                         tickFormatter={(value) => `$${value}`}
                                     />
                                     <Tooltip
-                                        formatter={(value: number) => [`$${value.toFixed(2)}`, 'Revenue']}
+                                        formatter={(value: any) => [`$${Number(value).toFixed(2)}`, 'Revenue']}
                                         cursor={{ fill: 'transparent' }}
                                     />
                                     <Bar dataKey="revenue" fill="#0f172a" radius={[4, 4, 0, 0]} />

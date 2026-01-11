@@ -1,5 +1,5 @@
 import * as React from "react"
-import { cn } from "@/lib/supabase/utils" // Wait, I don't have utils there maybe? Let's check clsx usage in button.tsx
+import { cn } from "@/lib/utils"
 
 export interface InputProps
     extends React.InputHTMLAttributes<HTMLInputElement> { }
