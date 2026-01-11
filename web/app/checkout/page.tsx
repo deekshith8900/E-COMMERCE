@@ -26,6 +26,8 @@ export default function CheckoutPage() {
         country: ''
     })
 
+    const [success, setSuccess] = useState(false)
+
     // Check Auth & Empty Cart
     useEffect(() => {
         const checkUser = async () => {
@@ -38,10 +40,10 @@ export default function CheckoutPage() {
         }
         checkUser()
 
-        if (items.length === 0) {
+        if (items.length === 0 && !success) {
             router.push('/shop')
         }
-    }, [items, router, supabase])
+    }, [items, router, supabase, success])
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -61,7 +63,7 @@ export default function CheckoutPage() {
                     status: 'Pending',
                     total_amount: cartTotal,
                     shipping_address: formData,
-                    payment_status: 'Paid' // Simulating successful payment
+                    payment_status: 'Pending' // Explicitly Pending until paid
                 })
                 .select()
                 .single()
@@ -82,7 +84,37 @@ export default function CheckoutPage() {
 
             if (itemsError) throw itemsError
 
-            // 3. Clear Cart & Redirect
+            // 3. Initiate Payment (Call FastAPI)
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/create-payment-intent`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ order_id: order.id })
+            })
+
+            if (!response.ok) throw new Error('Failed to initiate payment')
+
+            const { client_secret } = await response.json()
+
+            console.log('Payment Initiated:', client_secret)
+
+            // 4. Simulate Payment Success (Since we are in simulated mode)
+            // In real life, Stripe Elements would handle this part.
+            // We manually call our own webhook to prove the loop works.
+            await fetch(`${process.env.NEXT_PUBLIC_API_URL}/webhook`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: 'payment_intent.succeeded',
+                    data: {
+                        order_id: order.id,
+                        amount: Math.round(cartTotal * 100),
+                        id: `sim_txn_${Date.now()}`
+                    }
+                })
+            })
+
+            // 5. Clear Cart & Redirect
+            setSuccess(true)
             clearCart()
             router.push('/checkout/success')
 

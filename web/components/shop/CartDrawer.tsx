@@ -6,10 +6,17 @@ import { Button } from '@/components/ui/button'
 import { ShoppingBag, X, Trash2, Plus, Minus } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 
 export default function CartDrawer() {
     const [isOpen, setIsOpen] = useState(false)
     const { items, removeItem, updateQuantity, cartCount, cartTotal } = useCart()
+    const router = useRouter()
+
+    const handleCheckout = () => {
+        setIsOpen(false)
+        router.push('/checkout')
+    }
 
     return (
         <>
@@ -111,7 +118,10 @@ export default function CartDrawer() {
                                         <span>Total</span>
                                         <span>${cartTotal.toFixed(2)}</span>
                                     </div>
-                                    <Button className="w-full h-12 text-lg">
+                                    <Button
+                                        className="w-full h-12 text-lg"
+                                        onClick={handleCheckout}
+                                    >
                                         Checkout Now
                                     </Button>
                                 </div>

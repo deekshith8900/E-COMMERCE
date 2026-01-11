@@ -64,3 +64,62 @@ async def upload_file(file: UploadFile = File(...)):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# --- Payment Features (Simulated for Phase 5) ---
+
+from pydantic import BaseModel
+
+class PaymentIntentRequest(BaseModel):
+    order_id: str
+
+@app.post("/create-payment-intent")
+async def create_payment_intent(request: PaymentIntentRequest):
+    """
+    Simulates calling Stripe to get a client_secret.
+    In a real app, we would use the order_id to fetch the amount from DB
+    and create a real Stripe Intent.
+    """
+    try:
+        # Mock Logic:
+        # 1. Verify order exists (optional, skipping for speed)
+        # 2. Return a fake secret
+        return {
+            "client_secret": f"simulated_secret_{uuid.uuid4()}",
+            "amount": 100.00, # Mocked amount
+            "currency": "usd"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/webhook")
+async def payment_webhook(request: dict):
+    """
+    Simulates a Stripe Webhook.
+    When payment is successful, we update the order status in Supabase.
+    """
+    try:
+        # In real life, we verify signature here.
+        event_type = request.get("type")
+        data = request.get("data", {})
+        
+        if event_type == "payment_intent.succeeded":
+            order_id = data.get("order_id")
+            transaction_id = data.get("id", str(uuid.uuid4()))
+            amount = data.get("amount", 0) / 100 # Stripe uses cents
+            
+            # 1. Update Order Status
+            supabase.table("orders").update({"status": "Processing", "payment_status": "Paid"}).eq("id", order_id).execute()
+            
+            # 2. Log Transaction
+            supabase.table("transactions").insert({
+                "order_id": order_id,
+                "provider_id": transaction_id,
+                "amount": amount,
+                "status": "success",
+                "provider": "simulated"
+            }).execute()
+            
+            return {"status": "success"}
+    
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
