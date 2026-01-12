@@ -100,6 +100,7 @@ export default function ShopPage() {
                             <p>Supabase URL: {process.env.NEXT_PUBLIC_SUPABASE_URL ? process.env.NEXT_PUBLIC_SUPABASE_URL.substring(0, 15) + '...' : 'UNDEFINED'}</p>
                             <p>Supabase Key: {process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY.substring(0, 5) + '...') : 'UNDEFINED'}</p>
                             <p>If URL is "https://placeho...", then Env Vars are MISSING in Vercel.</p>
+                            <p className="border-t border-red-300 mt-2 pt-1 font-bold">Build Check: Version 5 (Should show {new Date().toISOString()})</p>
                         </div>
                     </div>
                 )}
