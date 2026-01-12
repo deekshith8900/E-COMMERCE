@@ -13,18 +13,18 @@ interface Category {
     name: string
 }
 
-export default function ProductForm({ onSuccess }: { onSuccess?: () => void }) {
+export default function ProductForm({ onSuccess, initialData }: { onSuccess?: () => void, initialData?: Product | null }) {
     const [loading, setLoading] = useState(false)
     const [categories, setCategories] = useState<Category[]>([])
     const [imageFile, setImageFile] = useState<File | null>(null)
-    const [imagePreview, setImagePreview] = useState<string | null>(null)
+    const [imagePreview, setImagePreview] = useState<string | null>(initialData?.image_url || null)
 
     // Form State
-    const [name, setName] = useState('')
-    const [description, setDescription] = useState('')
-    const [price, setPrice] = useState('')
-    const [stock, setStock] = useState('')
-    const [categoryId, setCategoryId] = useState('')
+    const [name, setName] = useState(initialData?.name || '')
+    const [description, setDescription] = useState(initialData?.description || '')
+    const [price, setPrice] = useState(initialData?.price?.toString() || '')
+    const [stock, setStock] = useState(initialData?.stock_quantity?.toString() || '')
+    const [categoryId, setCategoryId] = useState(initialData?.category_id || '') // Assuming category_id is available or we map it
 
     const supabase = createClient()
 
@@ -49,9 +49,9 @@ export default function ProductForm({ onSuccess }: { onSuccess?: () => void }) {
         setLoading(true)
 
         try {
-            let imageUrl = ''
+            let imageUrl = initialData?.image_url || ''
 
-            // 1. Upload Image to Python Backend if exists
+            // 1. Upload new Image if changed
             if (imageFile) {
                 const formData = new FormData()
                 formData.append('file', imageFile)
@@ -68,31 +68,39 @@ export default function ProductForm({ onSuccess }: { onSuccess?: () => void }) {
                 imageUrl = data.url
             }
 
-            // 2. Insert into Supabase
-            const { error } = await supabase.from('products').insert({
+            const productData = {
                 name,
                 description,
                 price: parseFloat(price),
                 stock_quantity: parseInt(stock),
                 category_id: categoryId || null,
                 image_url: imageUrl,
-            })
+            }
+
+            let error;
+
+            if (initialData?.id) {
+                // Update existing
+                const { error: updateError } = await supabase
+                    .from('products')
+                    .update(productData)
+                    .eq('id', initialData.id)
+                error = updateError
+            } else {
+                // Insert new
+                const { error: insertError } = await supabase
+                    .from('products')
+                    .insert(productData)
+                error = insertError
+            }
 
             if (error) throw error
 
-            // Reset
-            setName('')
-            setDescription('')
-            setPrice('')
-            setStock('')
-            setCategoryId('')
-            setImageFile(null)
-            setImagePreview(null)
-
             if (onSuccess) onSuccess()
-            alert('Product created successfully!')
+            alert(initialData ? 'Product updated successfully!' : 'Product created successfully!')
 
         } catch (error: any) {
+            console.error(error)
             alert(`Error: ${error.message}`)
         } finally {
             setLoading(false)
@@ -193,16 +201,18 @@ export default function ProductForm({ onSuccess }: { onSuccess?: () => void }) {
                 </div>
             </div>
 
-            <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? (
-                    <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Creating Product...
-                    </>
-                ) : (
-                    'Create Product'
-                )}
-            </Button>
+            <div className="flex gap-4">
+                <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? (
+                        <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            {initialData ? 'Updating...' : 'Creating...'}
+                        </>
+                    ) : (
+                        initialData ? 'Update Product' : 'Create Product'
+                    )}
+                </Button>
+            </div>
         </form>
     )
 }

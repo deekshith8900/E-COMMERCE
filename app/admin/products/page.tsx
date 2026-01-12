@@ -19,6 +19,7 @@ interface Product {
 export default function AdminProductsPage() {
     const [products, setProducts] = useState<Product[]>([])
     const [showForm, setShowForm] = useState(false)
+    const [editingProduct, setEditingProduct] = useState<Product | null>(null)
     const supabase = createClient()
 
     const fetchProducts = async () => {
@@ -40,6 +41,23 @@ export default function AdminProductsPage() {
         }
     }
 
+    const handleDelete = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this product?')) return
+
+        const { error } = await supabase.from('products').delete().eq('id', id)
+        if (error) {
+            alert('Error deleting product')
+            console.error(error)
+        } else {
+            fetchProducts()
+        }
+    }
+
+    const handleEdit = (product: Product) => {
+        setEditingProduct(product)
+        setShowForm(true)
+    }
+
     useEffect(() => {
         fetchProducts()
     }, [])
@@ -51,7 +69,15 @@ export default function AdminProductsPage() {
                     <h1 className="text-3xl font-bold tracking-tight text-primary">Products</h1>
                     <p className="text-muted-foreground">Manage your inventory and store catalog.</p>
                 </div>
-                <Button onClick={() => setShowForm(!showForm)}>
+                <Button onClick={() => {
+                    if (showForm) {
+                        setShowForm(false)
+                        setEditingProduct(null)
+                    } else {
+                        setShowForm(true)
+                        setEditingProduct(null)
+                    }
+                }}>
                     {showForm ? 'Cancel' : (
                         <>
                             <Plus className="mr-2 h-4 w-4" />
@@ -63,11 +89,15 @@ export default function AdminProductsPage() {
 
             {showForm && (
                 <div className="mb-8 p-6 bg-slate-50 rounded-xl border border-slate-200">
-                    <h2 className="text-xl font-semibold mb-4 text-primary">Add New Product</h2>
-                    <ProductForm onSuccess={() => {
-                        setShowForm(false)
-                        fetchProducts()
-                    }} />
+                    <h2 className="text-xl font-semibold mb-4 text-primary">{editingProduct ? 'Edit Product' : 'Add New Product'}</h2>
+                    <ProductForm
+                        initialData={editingProduct}
+                        onSuccess={() => {
+                            setShowForm(false)
+                            setEditingProduct(null)
+                            fetchProducts()
+                        }}
+                    />
                 </div>
             )}
 
@@ -125,10 +155,10 @@ export default function AdminProductsPage() {
                                             </td>
                                             <td className="p-4 align-middle text-right">
                                                 <div className="flex justify-end gap-2">
-                                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleEdit(product)}>
                                                         <Edit className="h-4 w-4" />
                                                     </Button>
-                                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50">
+                                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(product.id)}>
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>
                                                 </div>
