@@ -1,13 +1,56 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { Loader2, FileText } from 'lucide-react'
 import jsPDF from 'jspdf'
 import 'jspdf-autotable'
-import { FileText } from 'lucide-react'
 
-// ... (previous interfaces)
+interface Order {
+    id: string
+    created_at: string
+    status: string
+    total_amount: number
+    payment_status: string
+    shipping_address: any
+    items: any[]
+}
 
 export default function AdminOrdersPage() {
-    // ... (previous state)
+    const [orders, setOrders] = useState<Order[]>([])
+    const [loading, setLoading] = useState(true)
+    const supabase = createClient()
 
-    // ... (previous fetchOrders)
+    const fetchOrders = async () => {
+        const { data } = await supabase
+            .from('orders')
+            .select(`
+        *,
+        items:order_items(
+            *,
+            product:products(name)
+        )
+      `)
+            .order('created_at', { ascending: false })
+
+        if (data) setOrders(data)
+        setLoading(false)
+    }
+
+    useEffect(() => {
+        fetchOrders()
+    }, [])
+
+    const updateStatus = async (orderId: string, newStatus: string) => {
+        const { error } = await supabase
+            .from('orders')
+            .update({ status: newStatus })
+            .eq('id', orderId)
+
+        if (!error) {
+            setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus } : o))
+        }
+    }
 
     const generateInvoice = (order: Order) => {
         const doc = new jsPDF()
@@ -60,11 +103,18 @@ export default function AdminOrdersPage() {
         doc.save(`invoice_${order.id.slice(0, 8)}.pdf`)
     }
 
-    // ... (previous updateStatus)
+    const getStatusColor = (status: string) => {
+        switch (status.toLowerCase()) {
+            case 'pending': return 'bg-yellow-100 text-yellow-800'
+            case 'processing': return 'bg-blue-100 text-blue-800'
+            case 'shipped': return 'bg-purple-100 text-purple-800'
+            case 'delivered': return 'bg-green-100 text-green-800'
+            case 'cancelled': return 'bg-red-100 text-red-800'
+            default: return 'bg-gray-100 text-gray-800'
+        }
+    }
 
-    // ... (previous getStatusColor)
-
-    if (loading) return <div className="p-8"><Loader2 className="animate-spin" /></div>
+    if (loading) return <div className="p-8 flex justify-center"><Loader2 className="animate-spin" /></div>
 
     return (
         <div className="p-8 max-w-7xl mx-auto">

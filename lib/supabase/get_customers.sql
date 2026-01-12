@@ -17,14 +17,15 @@ begin
   return query
   select 
     p.id as user_id,
-    p.email,
+    au.email::text,
     p.full_name,
     count(o.id) as total_orders,
     coalesce(sum(o.total_amount), 0) as total_spent,
     max(o.created_at) as last_order_date
   from profiles p
+  join auth.users au on p.id = au.id
   left join orders o on p.id = o.user_id
-  group by p.id, p.email, p.full_name
+  group by p.id, au.email, p.full_name
   order by total_spent desc;
 end;
 $$;

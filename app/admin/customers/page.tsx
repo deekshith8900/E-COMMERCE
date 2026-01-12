@@ -27,6 +27,8 @@ export default function AdminCustomersPage() {
 
             if (error) {
                 console.error('Error fetching customers:', error)
+                console.log('Error details:', JSON.stringify(error, null, 2))
+                alert('Failed to fetch customers: ' + error.message)
             } else if (data) {
                 setCustomers(data)
             }
