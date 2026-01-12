@@ -5,8 +5,8 @@ from dotenv import load_dotenv
 import os
 import uuid
 
-# Load env vars from the web/.env.local file (since we share them)
-load_dotenv(dotenv_path="../web/.env.local")
+# Load env vars from the root .env.local file
+load_dotenv(dotenv_path="../.env.local")
 
 app = FastAPI()
 
