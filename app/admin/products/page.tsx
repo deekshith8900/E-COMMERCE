@@ -10,8 +10,10 @@ import Image from 'next/image'
 interface Product {
     id: string
     name: string
+    description: string
     price: number
     stock_quantity: number
+    category_id: string
     category: { name: string } | null
     image_url: string
 }

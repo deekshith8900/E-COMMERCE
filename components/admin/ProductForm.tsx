@@ -13,6 +13,16 @@ interface Category {
     name: string
 }
 
+interface Product {
+    id: string
+    name: string
+    description: string
+    price: number
+    stock_quantity: number
+    category_id: string
+    image_url: string
+}
+
 export default function ProductForm({ onSuccess, initialData }: { onSuccess?: () => void, initialData?: Product | null }) {
     const [loading, setLoading] = useState(false)
     const [categories, setCategories] = useState<Category[]>([])

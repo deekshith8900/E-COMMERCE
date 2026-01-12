@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Loader2, Package, ShoppingBag } from 'lucide-react'
 import Link from 'next/link'
-import Navbar from '@/components/landing/Navbar'
-import Footer from '@/components/landing/Footer'
+import { Footer } from '@/components/landing/Footer'
 
 interface Order {
     id: string
@@ -51,7 +50,9 @@ export default function MyOrdersPage() {
 
     if (loading) return (
         <div className="min-h-screen bg-slate-50">
-            <Navbar />
+            <header className="bg-white border-b border-slate-200 h-16 flex items-center px-4 md:px-6">
+                <Link href="/" className="font-bold text-xl text-slate-900">Store</Link>
+            </header>
             <div className="flex justify-center items-center h-[calc(100vh-200px)]">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
@@ -61,7 +62,12 @@ export default function MyOrdersPage() {
 
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col">
-            <Navbar />
+            <header className="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-4 md:px-6 sticky top-0 z-50">
+                <Link href="/" className="font-bold text-xl text-slate-900">E-Commerce Store</Link>
+                <nav className="flex items-center gap-4">
+                    <Link href="/shop" className="text-sm font-medium text-slate-600 hover:text-slate-900">Shop</Link>
+                </nav>
+            </header>
 
             <main className="flex-1 container py-12 px-4 md:px-6">
                 <h1 className="text-3xl font-bold mb-8 text-slate-900">My Orders</h1>
