@@ -19,6 +19,8 @@ export default function ShopPage() {
     const [categories, setCategories] = useState<{ id: string, name: string }[]>([])
     const [loading, setLoading] = useState(true)
 
+    const [error, setError] = useState<string | null>(null)
+
     // Filter States
     const [searchQuery, setSearchQuery] = useState('')
     const [selectedCategory, setSelectedCategory] = useState('All')
@@ -27,31 +29,40 @@ export default function ShopPage() {
 
     useEffect(() => {
         const fetchData = async () => {
-            // Fetch Products
-            const { data: productsData } = await supabase
-                .from('products')
-                .select('*, categories(name)')
-                .eq('is_active', true)
+            try {
+                // Fetch Products
+                const { data: productsData, error: productsError } = await supabase
+                    .from('products')
+                    .select('*, categories(name)')
+                    .eq('is_active', true)
 
-            // Fetch Categories
-            const { data: categoriesData } = await supabase
-                .from('categories')
-                .select('id, name')
+                if (productsError) throw productsError
 
-            if (productsData) {
-                const formatted = productsData.map((item: any) => ({
-                    ...item,
-                    category: item.categories
-                }))
-                setProducts(formatted)
-                setFilteredProducts(formatted)
+                // Fetch Categories
+                const { data: categoriesData, error: categoriesError } = await supabase
+                    .from('categories')
+                    .select('id, name')
+
+                if (categoriesError) throw categoriesError
+
+                if (productsData) {
+                    const formatted = productsData.map((item: any) => ({
+                        ...item,
+                        category: item.categories
+                    }))
+                    setProducts(formatted)
+                    setFilteredProducts(formatted)
+                }
+
+                if (categoriesData) {
+                    setCategories(categoriesData)
+                }
+            } catch (err: any) {
+                console.error('Shop fetch error:', err)
+                setError(err.message || 'Failed to load products')
+            } finally {
+                setLoading(false)
             }
-
-            if (categoriesData) {
-                setCategories(categoriesData)
-            }
-
-            setLoading(false)
         }
         fetchData()
     }, [])
@@ -79,6 +90,14 @@ export default function ShopPage() {
         <div className="min-h-screen bg-slate-50 py-12">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <h1 className="text-3xl font-bold text-slate-900 mb-8">Shop Our Collection</h1>
+
+                {error && (
+                    <div className="bg-red-50 text-red-600 p-4 rounded-md mb-8 border border-red-200">
+                        <p className="font-bold">Error Loading Products:</p>
+                        <p>{error}</p>
+                        <p className="text-sm mt-2 text-red-500">Please check your internet connection or Vercel Environment Variables (NEXT_PUBLIC_SUPABASE_URL).</p>
+                    </div>
+                )}
 
                 {/* Search and Filter Controls */}
                 <div className="flex flex-col sm:flex-row gap-4 mb-8">
