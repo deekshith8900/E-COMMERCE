@@ -95,7 +95,12 @@ export default function ShopPage() {
                     <div className="bg-red-50 text-red-600 p-4 rounded-md mb-8 border border-red-200">
                         <p className="font-bold">Error Loading Products:</p>
                         <p>{error}</p>
-                        <p className="text-sm mt-2 text-red-500">Please check your internet connection or Vercel Environment Variables (NEXT_PUBLIC_SUPABASE_URL).</p>
+                        <div className="mt-4 text-xs font-mono bg-red-100 p-2 rounded">
+                            <p><strong>Debug Info:</strong></p>
+                            <p>Supabase URL: {process.env.NEXT_PUBLIC_SUPABASE_URL ? process.env.NEXT_PUBLIC_SUPABASE_URL.substring(0, 15) + '...' : 'UNDEFINED'}</p>
+                            <p>Supabase Key: {process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY.substring(0, 5) + '...') : 'UNDEFINED'}</p>
+                            <p>If URL is "https://placeho...", then Env Vars are MISSING in Vercel.</p>
+                        </div>
                     </div>
                 )}
 
