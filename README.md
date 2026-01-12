@@ -1,37 +1,90 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# E-Commerce Admin & Order Management System
 
-## Getting Started
+A full-stack e-commerce platform featuring a modern Customer Shop, a powerful Admin Dashboard, and a simulated Payment & Order processing system.
 
-First, run the development server:
+## 🚀 What This Application Does
 
+This application is a complete solution for running an online store. It includes:
+
+*   **Customer Storefront**: Browse products, search & filter by category, view details, and add to cart (`/shop`).
+*   **Shopping Cart**: Persistent cart management with a slide-out drawer.
+*   **Checkout & Payments**: A complete checkout flow with shipping address collection and simulated payment processing (`/checkout`).
+*   **Admin Dashboard**: comprehensive analytics showing total revenue, orders, and sales charts (`/admin`).
+*   **Order Management**: Admins can view all orders and update their status (Pending → Shipped → Delivered).
+*   **Product Management**: Admins can add, edit, and upload images for products via a Python/FastAPI backend service.
+*   **Authentication**: Secure Sign Up, Login, and Role-Based Access Control (Admin vs Customer) using Supabase.
+
+## 🤖 AI Tools Used
+
+This project was built using **Google DeepMind's Antigravity Agent**.
+*   **Code Generation**: The entire codebase (Frontend, Backend, Database Schema) was generated and refined by the AI agent.
+*   **Problem Solving**: The agent handled debugging, build fixes, and deployment configuration autonomously.
+
+## 🛠️ Tech Stack
+
+*   **Frontend**: Next.js 15 (App Router), TypeScript, Tailwind CSS v4, Lucide Icons, Recharts.
+*   **Backend**: Python FastAPI (for Image Uploads and Payment Simulation).
+*   **Database & Auth**: Supabase (PostgreSQL, GoTrue, Storage).
+*   **Deployment**: Vercel (Frontend) + Railway/Render (Backend).
+
+## 💻 How to Run Locally
+
+Follow these steps to set up the project on your machine.
+
+### Prerequisites
+*   Node.js (v18+)
+*   Python (v3.9+)
+*   Supabase Account
+
+### 1. Clone the Repository
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/deekshith8900/E-COMMERCE.git
+cd E-COMMERCE
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Setup Frontend (Next.js)
+```bash
+# Install dependencies
+npm install
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+# Set up Environment Variables
+# Create a .env.local file in the root directory
+cp .env.local.example .env.local
+```
+Update `.env.local` with your Supabase credentials:
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Run the development server:
+```bash
+npm run dev
+# Open http://localhost:3000
+```
 
-## Learn More
+### 3. Setup Backend (FastAPI)
+The backend handles payments and image uploads.
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+cd api
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Create Login to virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# Install requirements
+pip install -r requirements.txt
 
-## Deploy on Vercel
+# Run the server
+uvicorn main:app --reload
+# backend runs at http://localhost:8000
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 4. Database Setup (Supabase)
+Run the SQL scripts located in `lib/supabase/` in your Supabase SQL Editor to create the tables (`profiles`, `products`, `orders`, `transactions`) and set up Security Policies (RLS).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-# E-COMMERCE
+## 📦 Deployment
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed instructions on deploying to Vercel and Railway.
