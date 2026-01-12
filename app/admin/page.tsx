@@ -26,6 +26,7 @@ export default function AdminDashboard() {
         pendingOrders: 0
     })
     const [chartData, setChartData] = useState<ChartData[]>([])
+    const [products, setProducts] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const supabase = createClient()
 
@@ -36,6 +37,13 @@ export default function AdminDashboard() {
                 .from('orders')
                 .select('*')
                 .order('created_at', { ascending: true })
+
+            // Fetch products for stock check
+            const { data: productsData } = await supabase
+                .from('products')
+                .select('id, name, stock_quantity')
+
+            if (productsData) setProducts(productsData)
 
             if (!orders) return
 
@@ -125,46 +133,78 @@ export default function AdminDashboard() {
                 </Card>
             </div>
 
-            {/* Chart */}
-            <Card className="col-span-4">
-                <CardHeader>
-                    <CardTitle>Revenue Overview</CardTitle>
-                </CardHeader>
-                <CardContent className="pl-2">
-                    <div className="h-[350px] w-full">
-                        {chartData.length > 0 ? (
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={chartData}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                    <XAxis
-                                        dataKey="date"
-                                        stroke="#888888"
-                                        fontSize={12}
-                                        tickLine={false}
-                                        axisLine={false}
-                                    />
-                                    <YAxis
-                                        stroke="#888888"
-                                        fontSize={12}
-                                        tickLine={false}
-                                        axisLine={false}
-                                        tickFormatter={(value) => `$${value}`}
-                                    />
-                                    <Tooltip
-                                        formatter={(value: any) => [`$${Number(value).toFixed(2)}`, 'Revenue']}
-                                        cursor={{ fill: 'transparent' }}
-                                    />
-                                    <Bar dataKey="revenue" fill="#0f172a" radius={[4, 4, 0, 0]} />
-                                </BarChart>
-                            </ResponsiveContainer>
+            {/* Low Stock Alert */}
+            <div className="grid gap-4 md:grid-cols-2">
+                <Card className="col-span-1">
+                    <CardHeader>
+                        <CardTitle className="text-red-600 flex items-center gap-2">
+                            <TrendingUp className="h-5 w-5" />
+                            Low Stock Alerts
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {loading ? (
+                            <div>Loading...</div>
                         ) : (
-                            <div className="h-full flex items-center justify-center text-slate-400">
-                                No paid orders yet to display.
+                            <div className="space-y-4">
+                                {products.filter(p => p.stock_quantity < 10).length > 0 ? (
+                                    products.filter(p => p.stock_quantity < 10).map(p => (
+                                        <div key={p.id} className="flex justify-between items-center p-3 bg-red-50 rounded-lg border border-red-100">
+                                            <span className="font-medium text-slate-700">{p.name}</span>
+                                            <span className="px-2 py-1 bg-red-200 text-red-800 text-xs font-bold rounded-full">
+                                                {p.stock_quantity} left
+                                            </span>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="text-slate-500 text-sm">All products are well stocked.</div>
+                                )}
                             </div>
                         )}
-                    </div>
-                </CardContent>
-            </Card>
+                    </CardContent>
+                </Card>
+
+                {/* Revenue Chart */}
+                <Card className="col-span-1">
+                    <CardHeader>
+                        <CardTitle>Revenue Overview</CardTitle>
+                    </CardHeader>
+                    <CardContent className="pl-2">
+                        <div className="h-[350px] w-full">
+                            {chartData.length > 0 ? (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={chartData}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                        <XAxis
+                                            dataKey="date"
+                                            stroke="#888888"
+                                            fontSize={12}
+                                            tickLine={false}
+                                            axisLine={false}
+                                        />
+                                        <YAxis
+                                            stroke="#888888"
+                                            fontSize={12}
+                                            tickLine={false}
+                                            axisLine={false}
+                                            tickFormatter={(value) => `$${value}`}
+                                        />
+                                        <Tooltip
+                                            formatter={(value: any) => [`$${Number(value).toFixed(2)}`, 'Revenue']}
+                                            cursor={{ fill: 'transparent' }}
+                                        />
+                                        <Bar dataKey="revenue" fill="#0f172a" radius={[4, 4, 0, 0]} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div className="h-full flex items-center justify-center text-slate-400">
+                                    No paid orders yet to display.
+                                </div>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
         </div>
     )
 }

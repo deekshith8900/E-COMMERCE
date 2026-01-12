@@ -1,75 +1,68 @@
-'use client'
+import jsPDF from 'jspdf'
+import 'jspdf-autotable'
+import { FileText } from 'lucide-react'
 
-import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { Loader2, Package, CheckCircle, Clock, Truck } from 'lucide-react'
-// Imports removed
-
-// We'll use a standard HTML select for simplicity if shadcn component isn't fully installed,
-// but let's try to stick to clean UI.
-
-interface Order {
-    id: string
-    created_at: string
-    status: string
-    total_amount: number
-    payment_status: string
-    shipping_address: any
-    user: { email: string }
-    items: any[]
-}
+// ... (previous interfaces)
 
 export default function AdminOrdersPage() {
-    const [orders, setOrders] = useState<Order[]>([])
-    const [loading, setLoading] = useState(true)
-    const supabase = createClient()
+    // ... (previous state)
 
-    const fetchOrders = async () => {
-        const { data } = await supabase
-            .from('orders')
-            .select(`
-        *,
-        items:order_items(
-            *,
-            product:products(name)
-        )
-      `)
-            .order('created_at', { ascending: false })
+    // ... (previous fetchOrders)
 
-        // We sadly can't easily join auth.users in standard query without a view,
-        // so we might just show the User ID or fetch profiles if we had a link.
-        // For now, let's assume we link to Profiles if we set up FK correctly or just show Order ID.
-        // Actually schema_phase4 said user_id references auth.users.
-        // RLS allows us to see it.
+    const generateInvoice = (order: Order) => {
+        const doc = new jsPDF()
 
-        if (data) setOrders(data)
-        setLoading(false)
+        // Header
+        doc.setFontSize(20)
+        doc.text('INVOICE', 14, 22)
+
+        doc.setFontSize(10)
+        doc.text(`Invoice #: ${order.id.slice(0, 8).toUpperCase()}`, 14, 30)
+        doc.text(`Date: ${new Date(order.created_at).toLocaleDateString()}`, 14, 35)
+
+        // Customer Info
+        doc.text('Bill To:', 14, 45)
+        doc.setFont('helvetica', 'bold')
+        doc.text(order.shipping_address?.fullName || 'Guest', 14, 50)
+        doc.setFont('helvetica', 'normal')
+        doc.text(order.shipping_address?.address || '', 14, 55)
+        doc.text(`${order.shipping_address?.city}, ${order.shipping_address?.zipCode}`, 14, 60)
+
+        // Table
+        const tableColumn = ["Item", "Quantity", "Price", "Total"]
+        const tableRows: any[] = []
+
+        order.items?.forEach(item => {
+            const itemData = [
+                item.product?.name || 'Item',
+                item.quantity,
+                `$${item.price_at_time}`,
+                `$${(item.quantity * item.price_at_time).toFixed(2)}`
+            ]
+            tableRows.push(itemData)
+        })
+
+        // @ts-ignore
+        doc.autoTable({
+            startY: 70,
+            head: [tableColumn],
+            body: tableRows,
+        })
+
+        // Total
+        // @ts-ignore
+        const finalY = doc.lastAutoTable.finalY + 10
+        doc.setFontSize(12)
+        doc.setFont('helvetica', 'bold')
+        doc.text(`Total Amount: $${order.total_amount}`, 14, finalY)
+
+        // Save
+        doc.save(`invoice_${order.id.slice(0, 8)}.pdf`)
     }
 
-    useEffect(() => {
-        fetchOrders()
-    }, [])
+    // ... (previous updateStatus)
 
-    const updateStatus = async (orderId: string, newStatus: string) => {
-        const { error } = await supabase
-            .from('orders')
-            .update({ status: newStatus })
-            .eq('id', orderId)
-
-        if (!error) {
-            setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus } : o))
-        }
-    }
-
-    const getStatusColor = (status: string) => {
-        switch (status.toLowerCase()) {
-            case 'pending': return 'bg-yellow-100 text-yellow-800'
-            case 'processing': return 'bg-blue-100 text-blue-800'
-            case 'shipped': return 'bg-purple-100 text-purple-800'
-            case 'delivered': return 'bg-green-100 text-green-800'
-            default: return 'bg-gray-100 text-gray-800'
-        }
-    }
+    // ... (previous getStatusColor)
 
     if (loading) return <div className="p-8"><Loader2 className="animate-spin" /></div>
 
@@ -110,7 +103,7 @@ export default function AdminOrdersPage() {
                                 <td className="px-6 py-4 text-xs text-slate-500">
                                     {order.items?.length} items
                                 </td>
-                                <td className="px-6 py-4">
+                                <td className="px-6 py-4 flex items-center gap-2">
                                     <select
                                         className="border rounded px-2 py-1 text-xs"
                                         value={order.status}
@@ -122,6 +115,13 @@ export default function AdminOrdersPage() {
                                         <option value="Delivered">Delivered</option>
                                         <option value="Cancelled">Cancelled</option>
                                     </select>
+                                    <button
+                                        onClick={() => generateInvoice(order)}
+                                        className="p-1 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded"
+                                        title="Download Invoice"
+                                    >
+                                        <FileText className="w-4 h-4" />
+                                    </button>
                                 </td>
                             </tr>
                         ))}
