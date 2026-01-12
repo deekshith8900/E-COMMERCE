@@ -11,7 +11,7 @@ We recommend **Vercel** for the Next.js frontend.
 3.  Import your GitHub repository.
 4.  **Build Settings**:
     *   Framework Preset: Next.js (Automatic)
-    *   Root Directory: `web`
+    *   Root Directory: Leave empty (Default)
 5.  **Environment Variables**:
     *   Add the following variables (copy from your `.env.local`):
         *   `NEXT_PUBLIC_SUPABASE_URL`
