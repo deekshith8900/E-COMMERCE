@@ -28,6 +28,15 @@ export default function CheckoutPage() {
 
     const [success, setSuccess] = useState(false)
 
+    // Coupon State
+    const [couponCode, setCouponCode] = useState('')
+    const [couponLoading, setCouponLoading] = useState(false)
+    const [appliedCoupon, setAppliedCoupon] = useState<{
+        code: string;
+        discountAmount: number;
+    } | null>(null)
+    const [couponMessage, setCouponMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null)
+
     // Check Auth & Empty Cart
     useEffect(() => {
         const checkUser = async () => {
@@ -49,19 +58,53 @@ export default function CheckoutPage() {
         setFormData({ ...formData, [e.target.name]: e.target.value })
     }
 
+    const applyCoupon = async () => {
+        if (!couponCode.trim()) return
+        setCouponLoading(true)
+        setCouponMessage(null)
+
+        try {
+            const { data, error } = await supabase.rpc('validate_coupon', {
+                code_input: couponCode,
+                cart_total: cartTotal
+            })
+
+            if (error) throw error
+
+            if (data.valid) {
+                setAppliedCoupon({
+                    code: data.code,
+                    discountAmount: data.discount_amount
+                })
+                setCouponMessage({ text: data.message, type: 'success' })
+            } else {
+                setAppliedCoupon(null)
+                setCouponMessage({ text: data.message, type: 'error' })
+            }
+        } catch (error) {
+            console.error('Coupon Error:', error)
+            setCouponMessage({ text: 'Failed to apply coupon', type: 'error' })
+        } finally {
+            setCouponLoading(false)
+        }
+    }
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!user) return
         setLoading(true)
 
         try {
+            // Calculate final total
+            const finalTotal = cartTotal - (appliedCoupon?.discountAmount || 0)
+
             // 1. Create Order
             const { data: order, error: orderError } = await supabase
                 .from('orders')
                 .insert({
                     user_id: user.id,
                     status: 'Pending',
-                    total_amount: cartTotal,
+                    total_amount: finalTotal,
                     shipping_address: formData,
                     payment_status: 'Pending' // Explicitly Pending until paid
                 })
@@ -88,7 +131,10 @@ export default function CheckoutPage() {
             const response = await fetch('/api/create-payment-intent', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ order_id: order.id })
+                body: JSON.stringify({
+                    order_id: order.id,
+                    coupon_code: appliedCoupon?.code // Send coupon code to verify on server
+                })
             })
 
             if (!response.ok) throw new Error('Failed to initiate payment')
@@ -106,11 +152,16 @@ export default function CheckoutPage() {
                     type: 'payment_intent.succeeded',
                     data: {
                         order_id: order.id,
-                        amount: Math.round(cartTotal * 100),
+                        amount: Math.round(finalTotal * 100),
                         id: `sim_txn_${Date.now()}`
                     }
                 })
             })
+
+            // Increment coupon usage if applied
+            if (appliedCoupon) {
+                await supabase.rpc('increment_coupon_usage', { coupon_code: appliedCoupon.code })
+            }
 
             // 5. Clear Cart & Redirect
             setSuccess(true)
@@ -125,6 +176,8 @@ export default function CheckoutPage() {
     }
 
     if (!user || items.length === 0) return null
+
+    const finalTotal = Math.max(0, cartTotal - (appliedCoupon?.discountAmount || 0))
 
     return (
         <div className="min-h-screen bg-slate-50 py-12">
@@ -204,7 +257,7 @@ export default function CheckoutPage() {
                                         Processing...
                                     </>
                                 ) : (
-                                    `Pay $${cartTotal.toFixed(2)}`
+                                    `Pay $${finalTotal.toFixed(2)}`
                                 )}
                             </Button>
                         </form>
@@ -225,18 +278,60 @@ export default function CheckoutPage() {
                             ))}
                         </div>
 
+                        {/* Promo Code Input */}
+                        <div className="mb-6 pt-4 border-t">
+                            <label className="text-sm font-medium mb-2 block text-slate-700">Promo Code</label>
+                            <div className="flex gap-2">
+                                <Input
+                                    placeholder="Enter code (e.g. WELCOME10)"
+                                    value={couponCode}
+                                    onChange={(e) => setCouponCode(e.target.value)}
+                                    disabled={!!appliedCoupon}
+                                />
+                                {appliedCoupon ? (
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                            setAppliedCoupon(null)
+                                            setCouponCode('')
+                                            setCouponMessage(null)
+                                        }}
+                                    >
+                                        Remove
+                                    </Button>
+                                ) : (
+                                    <Button onClick={applyCoupon} disabled={couponLoading || !couponCode}>
+                                        {couponLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Apply'}
+                                    </Button>
+                                )}
+                            </div>
+                            {couponMessage && (
+                                <p className={`text-xs mt-2 ${couponMessage.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                                    {couponMessage.text}
+                                </p>
+                            )}
+                        </div>
+
                         <div className="border-t pt-4 space-y-2">
                             <div className="flex justify-between text-slate-500 text-sm">
                                 <span>Subtotal</span>
                                 <span>${cartTotal.toFixed(2)}</span>
                             </div>
+
+                            {appliedCoupon && (
+                                <div className="flex justify-between text-green-600 text-sm font-medium">
+                                    <span>Discount ({appliedCoupon.code})</span>
+                                    <span>-${appliedCoupon.discountAmount.toFixed(2)}</span>
+                                </div>
+                            )}
+
                             <div className="flex justify-between text-slate-500 text-sm">
                                 <span>Shipping</span>
                                 <span>Free</span>
                             </div>
                             <div className="flex justify-between text-lg font-bold text-slate-900 border-t pt-4 mt-2">
                                 <span>Total</span>
-                                <span>${cartTotal.toFixed(2)}</span>
+                                <span>${finalTotal.toFixed(2)}</span>
                             </div>
                         </div>
 
