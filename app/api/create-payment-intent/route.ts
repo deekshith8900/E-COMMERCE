@@ -39,12 +39,27 @@ export async function POST(request: Request) {
             }
         }
 
-        // Ensure amount is at least $0.50 (Stripe min) if doing real payments, but okay for sim
-        finalAmount = Math.max(0, finalAmount)
+        // Ensure amount is at least $0.50 (Stripe min), we use cents
+        const amountInCents = Math.round(Math.max(0.5, finalAmount) * 100)
 
-        // Mock Payment Intent Creation
+        // Initialize Stripe
+        const Stripe = require('stripe')
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+
+        // Create PaymentIntent
+        const paymentIntent = await stripe.paymentIntents.create({
+            amount: amountInCents,
+            currency: "usd",
+            automatic_payment_methods: {
+                enabled: true,
+            },
+            metadata: {
+                order_id: order_id, // Important for webhook
+            }
+        })
+
         return NextResponse.json({
-            client_secret: `simulated_secret_${Math.random().toString(36).substring(7)}`,
+            client_secret: paymentIntent.client_secret,
             amount: finalAmount,
             currency: "usd"
         })

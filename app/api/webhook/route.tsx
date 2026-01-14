@@ -1,12 +1,37 @@
+
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 // Removed local client import to avoid confusion
 import { OrderConfirmationTemplate } from '@/components/email/OrderConfirmationTemplate'
 
+// Need to allow reading raw body for signature verification
+export const config = {
+    api: {
+        bodyParser: false,
+    },
+}
+
 export async function POST(request: Request) {
     try {
-        const body = await request.json()
-        const { type, data } = body
+        const body = await request.text()
+        const sig = request.headers.get('stripe-signature') as string
+
+        const { Stripe } = await import('stripe')
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+
+        let event
+
+        try {
+            if (!process.env.STRIPE_WEBHOOK_SECRET) {
+                // Return 200 to avoid retries if secret is missing in dev
+                console.warn('STRIPE_WEBHOOK_SECRET is missing. Skipping verification.')
+                return NextResponse.json({ status: "skipped" })
+            }
+            event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!)
+        } catch (err: any) {
+            console.error(`Webhook signature verification failed: ${err.message} `)
+            return NextResponse.json({ error: `Webhook Error: ${err.message} ` }, { status: 400 })
+        }
 
         // Initialize Supabase Service Role Client (Safe for Webhook)
         const supabase = createClient(
@@ -14,8 +39,17 @@ export async function POST(request: Request) {
             process.env.SUPABASE_SERVICE_ROLE_KEY!
         )
 
-        if (type === "payment_intent.succeeded") {
-            const { order_id, id: transaction_id, amount } = data
+        // Handle the event
+        if (event.type === 'payment_intent.succeeded') {
+            const paymentIntent = event.data.object as any
+            const { order_id } = paymentIntent.metadata
+
+            if (!order_id) {
+                console.error('Missing order_id in metadata')
+                return NextResponse.json({ status: "ignored_no_order_id" })
+            }
+
+            console.log(`Payment succeeded for order ${order_id}`)
 
             // 1. Update Order Status
             const { error: orderError } = await supabase
@@ -30,10 +64,10 @@ export async function POST(request: Request) {
                 .from("transactions")
                 .insert({
                     order_id,
-                    provider_id: transaction_id,
-                    amount: amount, // Assuming already processed format
+                    provider_id: paymentIntent.id,
+                    amount: paymentIntent.amount, // Stripe amount is in cents
                     status: "success",
-                    provider: "simulated"
+                    provider: "stripe"
                 })
 
             if (txError) throw txError
@@ -82,7 +116,6 @@ export async function POST(request: Request) {
                             process.env.NEXT_PUBLIC_SUPABASE_URL!,
                             process.env.SUPABASE_SERVICE_ROLE_KEY!
                         )
-
                         const { data: userData } = await supabaseAdmin.auth.admin.getUserById(orderData.user_id)
 
                         if (userData.user?.email) {
@@ -99,7 +132,7 @@ export async function POST(request: Request) {
                                     amount={orderData.total_amount * 100}
                                 />
                             })
-                            console.log(`Email sent to ${userData.user.email}`)
+                            console.log(`Email sent to ${userData.user.email} `)
                         }
                     }
                 } catch (emailError) {
