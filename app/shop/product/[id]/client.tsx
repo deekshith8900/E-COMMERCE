@@ -9,6 +9,7 @@ import { useCart } from '@/components/providers/CartProvider'
 import { Loader2, ArrowLeft, ShoppingCart, Check } from 'lucide-react'
 import Link from 'next/link'
 import { ReviewSection } from '@/components/product/ReviewSection'
+import WishlistButton from '@/components/product/WishlistButton'
 
 interface Product {
     id: string
@@ -135,24 +136,31 @@ export default function ProductDetailClient() {
                                 </span>
                             </div>
 
-                            <Button
-                                size="lg"
-                                className="w-full text-lg h-14"
-                                onClick={handleAddToCart}
-                                disabled={product.stock_quantity === 0}
-                            >
-                                {adding ? (
-                                    <>
-                                        <Check className="mr-2 h-5 w-5" />
-                                        Added to Cart
-                                    </>
-                                ) : (
-                                    <>
-                                        <ShoppingCart className="mr-2 h-5 w-5" />
-                                        Add to Cart
-                                    </>
-                                )}
-                            </Button>
+                            <div className="flex gap-4">
+                                <Button
+                                    size="lg"
+                                    className="flex-1 text-lg h-14"
+                                    onClick={handleAddToCart}
+                                    disabled={product.stock_quantity === 0}
+                                >
+                                    {adding ? (
+                                        <>
+                                            <Check className="mr-2 h-5 w-5" />
+                                            Added to Cart
+                                        </>
+                                    ) : (
+                                        <>
+                                            <ShoppingCart className="mr-2 h-5 w-5" />
+                                            Add to Cart
+                                        </>
+                                    )}
+                                </Button>
+                                <WishlistButton
+                                    productId={product.id}
+                                    className="h-14 w-14 border border-slate-200 bg-white hover:bg-slate-50 rounded-lg shrink-0"
+                                    iconSize={24}
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>

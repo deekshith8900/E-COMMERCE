@@ -5,11 +5,16 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ShoppingCart } from 'lucide-react'
 import type { Product } from '@/app/shop/page'
+import WishlistButton from '@/components/product/WishlistButton'
 
 export default function ProductCard({ product }: { product: Product }) {
     return (
-        <Link href={`/shop/product/${product.id}`} className="block h-full">
-            <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden border border-slate-100 flex flex-col h-full">
+        <div className="group relative block h-full bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden border border-slate-100 flex flex-col">
+            <div className="absolute top-2 right-2 z-10">
+                <WishlistButton productId={product.id} className="bg-white/80 backdrop-blur-sm hover:bg-white shadow-sm" />
+            </div>
+
+            <Link href={`/shop/product/${product.id}`} className="flex flex-col h-full">
                 <div className="relative aspect-square w-full bg-slate-100">
                     {product.image_url ? (
                         <Image
@@ -40,7 +45,7 @@ export default function ProductCard({ product }: { product: Product }) {
                         </Button>
                     </div>
                 </div>
-            </div>
-        </Link>
+            </Link>
+        </div>
     )
 }
