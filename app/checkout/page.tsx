@@ -84,8 +84,8 @@ export default function CheckoutPage() {
 
             if (itemsError) throw itemsError
 
-            // 3. Initiate Payment (Call FastAPI)
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/create-payment-intent`, {
+            // 3. Initiate Payment (Call Next.js API)
+            const response = await fetch('/api/create-payment-intent', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ order_id: order.id })
@@ -97,10 +97,9 @@ export default function CheckoutPage() {
 
             console.log('Payment Initiated:', client_secret)
 
-            // 4. Simulate Payment Success (Since we are in simulated mode)
-            // In real life, Stripe Elements would handle this part.
-            // We manually call our own webhook to prove the loop works.
-            await fetch(`${process.env.NEXT_PUBLIC_API_URL}/webhook`, {
+            // 4. Simulate Payment Success
+            // We call our own internal webhook
+            await fetch('/api/webhook', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

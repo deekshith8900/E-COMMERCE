@@ -63,19 +63,21 @@ export default function ProductForm({ onSuccess, initialData }: { onSuccess?: ()
 
             // 1. Upload new Image if changed
             if (imageFile) {
-                const formData = new FormData()
-                formData.append('file', imageFile)
+                const fileExt = imageFile.name.split('.').pop()
+                const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`
+                const bucketName = 'products'
 
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-                const response = await fetch(`${apiUrl}/upload`, {
-                    method: 'POST',
-                    body: formData,
-                })
+                const { data: uploadData, error: uploadError } = await supabase.storage
+                    .from(bucketName)
+                    .upload(fileName, imageFile)
 
-                if (!response.ok) throw new Error('Failed to upload image')
+                if (uploadError) throw uploadError
 
-                const data = await response.json()
-                imageUrl = data.url
+                const { data: { publicUrl } } = supabase.storage
+                    .from(bucketName)
+                    .getPublicUrl(fileName)
+
+                imageUrl = publicUrl
             }
 
             const productData = {
