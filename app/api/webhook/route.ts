@@ -36,6 +36,31 @@ export async function POST(request: Request) {
 
             if (txError) throw txError
 
+            // 3. Decrement Stock
+            const { data: orderItems, error: itemsError } = await supabase
+                .from('order_items')
+                .select('product_id, quantity')
+                .eq('order_id', order_id)
+
+            if (!itemsError && orderItems) {
+                for (const item of orderItems) {
+                    // Fetch current stock
+                    const { data: product } = await supabase
+                        .from('products')
+                        .select('stock_quantity')
+                        .eq('id', item.product_id)
+                        .single()
+
+                    if (product) {
+                        const newStock = Math.max(0, product.stock_quantity - item.quantity)
+                        await supabase
+                            .from('products')
+                            .update({ stock_quantity: newStock })
+                            .eq('id', item.product_id)
+                    }
+                }
+            }
+
             return NextResponse.json({ status: "success" })
         }
 

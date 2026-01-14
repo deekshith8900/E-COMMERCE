@@ -29,6 +29,59 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
     }
 }
 
-export default async function ProductPage() {
-    return <ProductDetailClient />
+export default async function ProductPage({ params }: { params: { id: string } }) {
+    const { id } = await params
+    const supabase = await createClient()
+
+    // Fetch Product
+    const { data: product } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', id)
+        .single()
+
+    // Fetch Review Stats
+    const { data: reviews } = await supabase
+        .from('reviews')
+        .select('rating')
+        .eq('product_id', id)
+
+    const reviewCount = reviews?.length || 0
+    const averageRating = reviewCount > 0
+        ? (reviews!.reduce((acc, curr) => acc + curr.rating, 0) / reviewCount).toFixed(1)
+        : null
+
+    // JSON-LD Structured Data
+    const jsonLd = {
+        '@context': 'https://schema.org',
+        '@type': 'Product',
+        name: product?.name,
+        description: product?.description,
+        image: product?.image_url,
+        offers: {
+            '@type': 'Offer',
+            price: product?.price,
+            priceCurrency: 'USD',
+            availability: product?.stock_quantity && product.stock_quantity > 0
+                ? 'https://schema.org/InStock'
+                : 'https://schema.org/OutOfStock',
+        },
+        ...(averageRating && {
+            aggregateRating: {
+                '@type': 'AggregateRating',
+                ratingValue: averageRating,
+                reviewCount: reviewCount
+            }
+        })
+    }
+
+    return (
+        <>
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            />
+            <ProductDetailClient />
+        </>
+    )
 }

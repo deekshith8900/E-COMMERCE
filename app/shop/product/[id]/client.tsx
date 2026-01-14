@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { useCart } from '@/components/providers/CartProvider'
 import { Loader2, ArrowLeft, ShoppingCart, Check } from 'lucide-react'
 import Link from 'next/link'
+import { ReviewSection } from '@/components/product/ReviewSection'
 
 interface Product {
     id: string
@@ -123,36 +124,42 @@ export default function ProductDetailClient() {
                                 </p>
                             </div>
 
-                            <div className="mt-auto pt-6 border-t border-slate-100">
-                                <div className="flex items-center justify-between mb-4">
-                                    <span className={`text-sm font-medium ${product.stock_quantity > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                        {product.stock_quantity > 0 ? `${product.stock_quantity} in stock` : 'Out of stock'}
-                                    </span>
-                                </div>
-
-                                <Button
-                                    size="lg"
-                                    className="w-full text-lg h-14"
-                                    onClick={handleAddToCart}
-                                    disabled={product.stock_quantity === 0}
-                                >
-                                    {adding ? (
-                                        <>
-                                            <Check className="mr-2 h-5 w-5" />
-                                            Added to Cart
-                                        </>
-                                    ) : (
-                                        <>
-                                            <ShoppingCart className="mr-2 h-5 w-5" />
-                                            Add to Cart
-                                        </>
-                                    )}
-                                </Button>
+                            <div className="mt-auto pt-6 border-t border-slate-100 flex items-center justify-between mb-4">
+                                <span className={`text-sm font-bold uppercase tracking-wide
+                                    ${product.stock_quantity === 0 ? 'text-red-600' :
+                                        product.stock_quantity < 5 ? 'text-orange-600' : 'text-green-600'}
+                                `}>
+                                    {product.stock_quantity === 0 ? 'Out of Stock' :
+                                        product.stock_quantity < 5 ? `Low Stock - Only ${product.stock_quantity} left!` :
+                                            'In Stock'}
+                                </span>
                             </div>
+
+                            <Button
+                                size="lg"
+                                className="w-full text-lg h-14"
+                                onClick={handleAddToCart}
+                                disabled={product.stock_quantity === 0}
+                            >
+                                {adding ? (
+                                    <>
+                                        <Check className="mr-2 h-5 w-5" />
+                                        Added to Cart
+                                    </>
+                                ) : (
+                                    <>
+                                        <ShoppingCart className="mr-2 h-5 w-5" />
+                                        Add to Cart
+                                    </>
+                                )}
+                            </Button>
                         </div>
                     </div>
                 </div>
+
+                {product.id && <ReviewSection productId={product.id} />}
             </div>
         </div>
+
     )
 }
