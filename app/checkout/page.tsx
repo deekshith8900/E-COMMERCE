@@ -134,6 +134,12 @@ function CheckoutForm({ user, items, cartTotal, appliedCoupon, finalTotal, formD
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
+            {!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                    <strong className="font-bold">CRITICAL CONFIG ERROR:</strong>
+                    <span className="block sm:inline"> Stripe Publishable Key is MISSING in this environment.</span>
+                </div>
+            )}
             <div>
                 <label className="text-sm font-medium mb-1 block">Full Name</label>
                 <Input required name="fullName" placeholder="John Doe" value={formData.fullName} onChange={handleInputChange} />
