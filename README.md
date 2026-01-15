@@ -2,6 +2,29 @@
 
 A full-stack e-commerce platform featuring a modern Customer Shop, a powerful Admin Dashboard, and a simulated Payment & Order processing system.
 
+## 🔗 Live Application Links
+
+**Base URL**: [https://e-commerce-git-main-deekshith-alampallys-projects.vercel.app](https://e-commerce-git-main-deekshith-alampallys-projects.vercel.app)
+
+### 🌍 Public Pages
+*   **Home (Landing)**: [/](https://e-commerce-git-main-deekshith-alampallys-projects.vercel.app/)
+*   **Shop (Catalog)**: [/shop](https://e-commerce-git-main-deekshith-alampallys-projects.vercel.app/shop)
+*   **Login**: [/login](https://e-commerce-git-main-deekshith-alampallys-projects.vercel.app/login)
+*   **Signup**: [/signup](https://e-commerce-git-main-deekshith-alampallys-projects.vercel.app/signup)
+
+### 👤 Customer Pages
+*(Requires Login)*
+*   **My Orders**: [/orders](https://e-commerce-git-main-deekshith-alampallys-projects.vercel.app/orders)
+*   **Wishlist**: [/shop/wishlist](https://e-commerce-git-main-deekshith-alampallys-projects.vercel.app/shop/wishlist)
+*   **Checkout**: [/checkout](https://e-commerce-git-main-deekshith-alampallys-projects.vercel.app/checkout)
+
+### 🔑 Admin Pages
+*(Requires Admin Login)*
+*   **Dashboard**: [/admin](https://e-commerce-git-main-deekshith-alampallys-projects.vercel.app/admin)
+*   **Products**: [/admin/products](https://e-commerce-git-main-deekshith-alampallys-projects.vercel.app/admin/products)
+*   **Orders**: [/admin/orders](https://e-commerce-git-main-deekshith-alampallys-projects.vercel.app/admin/orders)
+*   **Customers**: [/admin/customers](https://e-commerce-git-main-deekshith-alampallys-projects.vercel.app/admin/customers)
+
 ## 🚀 What This Application Does
 
 This application is a complete solution for running an online store. It includes:
