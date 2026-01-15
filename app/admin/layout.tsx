@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { LayoutDashboard, Package, ShoppingBag, Users, LogOut, Store } from 'lucide-react'
+import { LogoutButton } from '@/components/admin/LogoutButton'
 
 export default function AdminLayout({
     children,
@@ -27,10 +28,7 @@ export default function AdminLayout({
                 </nav>
 
                 <div className="p-4 border-t border-slate-100">
-                    <Link href="/" className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-lg hover:bg-slate-50 transition-colors">
-                        <LogOut size={20} />
-                        Exit Admin
-                    </Link>
+                    <LogoutButton />
                 </div>
             </aside>
 
