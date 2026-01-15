@@ -25,8 +25,15 @@ function CheckoutForm({ user, items, cartTotal, appliedCoupon, finalTotal, formD
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+        console.log("Submit clicked")
 
         if (!stripe || !elements || !user) {
+            const missing = []
+            if (!stripe) missing.push("Stripe")
+            if (!elements) missing.push("Elements")
+            if (!user) missing.push("User")
+            console.error("Not ready:", missing)
+            setErrorMessage(`System not ready (${missing.join(', ')}). Please refresh. Check API Keys if persistence.`)
             return
         }
 
@@ -34,6 +41,7 @@ function CheckoutForm({ user, items, cartTotal, appliedCoupon, finalTotal, formD
         setErrorMessage(null)
 
         try {
+            console.log("Creating pending order...")
             // 1. Create Order in Supabase First (Pending)
             const { data: order, error: orderError } = await supabase
                 .from('orders')
@@ -48,8 +56,10 @@ function CheckoutForm({ user, items, cartTotal, appliedCoupon, finalTotal, formD
                 .single()
 
             if (orderError) throw orderError
+            console.log("Order created:", order.id)
 
             // 2. Create Order Items
+            console.log("Creating order items...")
             const orderItems = items.map((item: any) => ({
                 order_id: order.id,
                 product_id: item.id,
@@ -57,9 +67,11 @@ function CheckoutForm({ user, items, cartTotal, appliedCoupon, finalTotal, formD
                 price_at_time: item.price
             }))
 
-            await supabase.from('order_items').insert(orderItems)
+            const { error: itemsError } = await supabase.from('order_items').insert(orderItems)
+            if (itemsError) throw itemsError
 
             // 3. Create Payment Intent on Server
+            console.log("Fetching payment intent...")
             const response = await fetch('/api/create-payment-intent', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -75,6 +87,7 @@ function CheckoutForm({ user, items, cartTotal, appliedCoupon, finalTotal, formD
             }
 
             const { client_secret } = await response.json()
+            console.log("Client secret received, confirming payment...")
 
             // 4. Confirm Payment with Stripe
             const { error: stripeError } = await stripe.confirmPayment({
@@ -99,13 +112,16 @@ function CheckoutForm({ user, items, cartTotal, appliedCoupon, finalTotal, formD
 
             // Note: confirmPayment usually redirects. If it returns an error here, handle it.
             if (stripeError) {
+                console.error("Stripe confirm error:", stripeError)
                 setErrorMessage(stripeError.message || 'Payment failed')
                 // Optional: Delete the pending order since it failed? 
                 // Currently simplified to just show error.
+            } else {
+                console.log("Payment confirmed (should redirect now)")
             }
 
         } catch (error: any) {
-            console.error(error)
+            console.error("Checkout process error:", error)
             setErrorMessage(error.message)
         } finally {
             setLoading(false)
@@ -159,7 +175,7 @@ function CheckoutForm({ user, items, cartTotal, appliedCoupon, finalTotal, formD
                         Processing...
                     </>
                 ) : (
-                    `Pay $${finalTotal.toFixed(2)}`
+                    `Pay $${finalTotal.toFixed(2)} (v2)`
                 )}
             </Button>
         </form>
