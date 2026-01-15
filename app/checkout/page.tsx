@@ -13,7 +13,11 @@ import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 
 // Initialize Stripe Key (Test Public Key)
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
+const stripeKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+if (!stripeKey) {
+    console.error("CRITICAL ERROR: 'NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY' is missing from Environment Variables!")
+}
+const stripePromise = loadStripe(stripeKey || "")
 
 function CheckoutForm({ user, items, cartTotal, appliedCoupon, finalTotal, formData, handleInputChange, clearCart }: any) {
     const stripe = useStripe()
