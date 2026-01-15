@@ -6,200 +6,19 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Loader2, ArrowLeft, ShieldCheck } from 'lucide-react'
+import { Loader2, ArrowLeft, ShieldCheck, CreditCard } from 'lucide-react'
 import Link from 'next/link'
-
-import { loadStripe } from '@stripe/stripe-js'
-import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
-
-// Initialize Stripe Key (Test Public Key)
-const stripeKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-if (!stripeKey) {
-    console.error("CRITICAL ERROR: 'NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY' is missing from Environment Variables!")
-}
-const stripePromise = loadStripe(stripeKey || "")
-
-function CheckoutForm({ user, items, cartTotal, appliedCoupon, finalTotal, formData, handleInputChange, clearCart }: any) {
-    const stripe = useStripe()
-    const elements = useElements()
-    const [loading, setLoading] = useState(false)
-    const [errorMessage, setErrorMessage] = useState<string | null>(null)
-    const supabase = createClient()
-    const router = useRouter()
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        console.log("Submit clicked")
-
-        if (!stripe || !elements || !user) {
-            const missing = []
-            if (!stripe) missing.push("Stripe")
-            if (!elements) missing.push("Elements")
-            if (!user) missing.push("User")
-            console.error("Not ready:", missing)
-            setErrorMessage(`System not ready (${missing.join(', ')}). Please refresh. Check API Keys if persistence.`)
-            return
-        }
-
-        setLoading(true)
-        setErrorMessage(null)
-
-        try {
-            console.log("Creating pending order...")
-            // 1. Create Order in Supabase First (Pending)
-            const { data: order, error: orderError } = await supabase
-                .from('orders')
-                .insert({
-                    user_id: user.id,
-                    status: 'Pending',
-                    total_amount: finalTotal,
-                    shipping_address: formData,
-                    payment_status: 'Pending'
-                })
-                .select()
-                .single()
-
-            if (orderError) throw orderError
-            console.log("Order created:", order.id)
-
-            // 2. Create Order Items
-            console.log("Creating order items...")
-            const orderItems = items.map((item: any) => ({
-                order_id: order.id,
-                product_id: item.id,
-                quantity: item.quantity,
-                price_at_time: item.price
-            }))
-
-            const { error: itemsError } = await supabase.from('order_items').insert(orderItems)
-            if (itemsError) throw itemsError
-
-            // 3. Create Payment Intent on Server
-            console.log("Fetching payment intent...")
-            const response = await fetch('/api/create-payment-intent', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    order_id: order.id,
-                    coupon_code: appliedCoupon?.code
-                })
-            })
-
-            if (!response.ok) {
-                const err = await response.json()
-                throw new Error(err.error || 'Failed to initialize payment')
-            }
-
-            const { client_secret } = await response.json()
-            console.log("Client secret received, confirming payment...")
-
-            // 4. Confirm Payment with Stripe
-            const { error: stripeError } = await stripe.confirmPayment({
-                elements,
-                clientSecret: client_secret,
-                confirmParams: {
-                    return_url: `${window.location.origin}/checkout/success`,
-                    payment_method_data: {
-                        billing_details: {
-                            name: formData.fullName,
-                            address: {
-                                line1: formData.address,
-                                city: formData.city,
-                                state: formData.state,
-                                postal_code: formData.zip,
-                                country: formData.country,
-                            }
-                        }
-                    }
-                },
-            })
-
-            // Note: confirmPayment usually redirects. If it returns an error here, handle it.
-            if (stripeError) {
-                console.error("Stripe confirm error:", stripeError)
-                setErrorMessage(stripeError.message || 'Payment failed')
-                // Optional: Delete the pending order since it failed? 
-                // Currently simplified to just show error.
-            } else {
-                console.log("Payment confirmed (should redirect now)")
-            }
-
-        } catch (error: any) {
-            console.error("Checkout process error:", error)
-            setErrorMessage(error.message)
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            {!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-                    <strong className="font-bold">CRITICAL CONFIG ERROR:</strong>
-                    <span className="block sm:inline"> Stripe Publishable Key is MISSING in this environment.</span>
-                </div>
-            )}
-            <div>
-                <label className="text-sm font-medium mb-1 block">Full Name</label>
-                <Input required name="fullName" placeholder="John Doe" value={formData.fullName} onChange={handleInputChange} />
-            </div>
-            <div>
-                <label className="text-sm font-medium mb-1 block">Address</label>
-                <Input required name="address" placeholder="123 Main St" value={formData.address} onChange={handleInputChange} />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <label className="text-sm font-medium mb-1 block">City</label>
-                    <Input required name="city" placeholder="New York" value={formData.city} onChange={handleInputChange} />
-                </div>
-                <div>
-                    <label className="text-sm font-medium mb-1 block">State</label>
-                    <Input required name="state" placeholder="NY" value={formData.state} onChange={handleInputChange} />
-                </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <label className="text-sm font-medium mb-1 block">ZIP Code</label>
-                    <Input required name="zip" placeholder="10001" value={formData.zip} onChange={handleInputChange} />
-                </div>
-                <div>
-                    <label className="text-sm font-medium mb-1 block">Country</label>
-                    <Input required name="country" placeholder="US" value={formData.country} onChange={handleInputChange} />
-                </div>
-            </div>
-
-            <div className="mt-6 pt-6 border-t">
-                <h3 className="text-sm font-medium mb-3">Payment Details</h3>
-                <div className="bg-slate-50 p-4 rounded-md border border-slate-200">
-                    <PaymentElement />
-                </div>
-            </div>
-
-            {errorMessage && <div className="text-red-600 text-sm mt-2">{errorMessage}</div>}
-
-            <Button type="submit" className="w-full mt-6" size="lg" disabled={loading}>
-                {loading ? (
-                    <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Processing...
-                    </>
-                ) : (
-                    `Pay $${finalTotal.toFixed(2)} (v2)`
-                )}
-            </Button>
-        </form>
-    )
-}
 
 export default function CheckoutPage() {
     const { items, cartTotal, clearCart } = useCart()
     const [user, setUser] = useState<any>(null)
     const router = useRouter()
     const supabase = createClient()
+    const [loading, setLoading] = useState(false)
+    const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [success, setSuccess] = useState(false)
 
-    // Form State for controlled inputs logic
+    // Form State
     const [formData, setFormData] = useState({
         fullName: '', address: '', city: '', state: '', zip: '', country: 'US'
     })
@@ -249,9 +68,64 @@ export default function CheckoutPage() {
         }
     }
 
-    if (!user || items.length === 0) return null
-
     const finalTotal = Math.max(0, cartTotal - (appliedCoupon?.discountAmount || 0))
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        setLoading(true)
+        setErrorMessage(null)
+
+        try {
+            if (!user) return
+
+            // 1. Create Order (Pending)
+            const { data: order, error: orderError } = await supabase
+                .from('orders')
+                .insert({
+                    user_id: user.id,
+                    status: 'Processing', // Simulated: Auto-process
+                    payment_status: 'Paid', // Simulated: Auto-pay
+                    total_amount: finalTotal,
+                    shipping_address: formData
+                })
+                .select()
+                .single()
+
+            if (orderError) throw orderError
+
+            // 2. Create Order Items
+            const orderItems = items.map((item: any) => ({
+                order_id: order.id,
+                product_id: item.id,
+                quantity: item.quantity,
+                price_at_time: item.price
+            }))
+
+            const { error: itemsError } = await supabase.from('order_items').insert(orderItems)
+            if (itemsError) throw itemsError
+
+            // 3. (Optional) Call API to trigger emails/stock deduction if needed
+            // For now, simpler is better. We just assume success.
+            // But we should try to deduct stock if possible. 
+            // We can call a server action or API route here if we want robust logic, 
+            // but for "Previous Version", client side logic is fine or we can rely on triggers.
+            // Let's call the webhook manually? No, webhook expects Stripe event.
+            // We will just let it be. If user needs stock updates, we'll add a 'simulate-payment' API later.
+
+            // 4. Success
+            setSuccess(true)
+            clearCart()
+            router.push('/checkout/success')
+
+        } catch (error: any) {
+            console.error('Checkout Error:', error)
+            setErrorMessage(error.message || 'Failed to place order')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    if (!user || items.length === 0) return null
 
     return (
         <div className="min-h-screen bg-slate-50 py-12">
@@ -262,35 +136,60 @@ export default function CheckoutPage() {
                 </Link>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {/* Payment Form Wrapper */}
+                    {/* Payment Form */}
                     <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
                         <h2 className="text-xl font-semibold mb-6">Checkout</h2>
-                        {/* We need to pass clientSecret if using SetupIntent, but PaymentElement works better embedded inside Elements context. 
-                            However, PaymentElement usually needs a clientSecret from PaymentIntent created on backend. 
-                            For dynamic cart amounts, the standard flow is:
-                            1. Create PaymentIntent on backend with amount.
-                            2. Pass clientSecret to Elements.
-                            
-                            BUT since amount might change with coupons, simpler is to use 'mode: payment' and amount in options, 
-                            OR fetch a paymentIntent on mount.
-                            Let's use the pattern where we wrap the form.
-                         */}
-                        <Elements stripe={stripePromise} options={{
-                            mode: 'payment',
-                            amount: Math.round(finalTotal * 100) || 50, // Fallback min amount for render
-                            currency: 'usd'
-                        }}>
-                            <CheckoutForm
-                                user={user}
-                                items={items}
-                                cartTotal={cartTotal}
-                                appliedCoupon={appliedCoupon}
-                                finalTotal={finalTotal}
-                                formData={formData}
-                                handleInputChange={handleInputChange}
-                                clearCart={clearCart}
-                            />
-                        </Elements>
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <div>
+                                <label className="text-sm font-medium mb-1 block">Full Name</label>
+                                <Input required name="fullName" placeholder="John Doe" value={formData.fullName} onChange={handleInputChange} />
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium mb-1 block">Address</label>
+                                <Input required name="address" placeholder="123 Main St" value={formData.address} onChange={handleInputChange} />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-sm font-medium mb-1 block">City</label>
+                                    <Input required name="city" placeholder="New York" value={formData.city} onChange={handleInputChange} />
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium mb-1 block">State</label>
+                                    <Input required name="state" placeholder="NY" value={formData.state} onChange={handleInputChange} />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-sm font-medium mb-1 block">ZIP Code</label>
+                                    <Input required name="zip" placeholder="10001" value={formData.zip} onChange={handleInputChange} />
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium mb-1 block">Country</label>
+                                    <Input required name="country" placeholder="US" value={formData.country} onChange={handleInputChange} />
+                                </div>
+                            </div>
+
+                            <div className="mt-6 pt-6 border-t">
+                                <h3 className="text-sm font-medium mb-3">Payment Method</h3>
+                                <div className="bg-slate-50 p-4 rounded-md border border-slate-200 flex items-center gap-3">
+                                    <CreditCard className="text-slate-500 w-5 h-5" />
+                                    <span className="text-sm text-slate-700 font-medium">Credit Card (Simulated)</span>
+                                </div>
+                            </div>
+
+                            {errorMessage && <div className="text-red-600 text-sm mt-2">{errorMessage}</div>}
+
+                            <Button type="submit" className="w-full mt-6" size="lg" disabled={loading}>
+                                {loading ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Processing...
+                                    </>
+                                ) : (
+                                    `Pay $${finalTotal.toFixed(2)}`
+                                )}
+                            </Button>
+                        </form>
                     </div>
 
                     {/* Order Summary */}
@@ -313,7 +212,7 @@ export default function CheckoutPage() {
                             <label className="text-sm font-medium mb-2 block text-slate-700">Promo Code</label>
                             <div className="flex gap-2">
                                 <Input
-                                    placeholder="Enter code (e.g. WELCOME10)"
+                                    placeholder="Enter code"
                                     value={couponCode}
                                     onChange={(e) => setCouponCode(e.target.value)}
                                     disabled={!!appliedCoupon}
@@ -359,7 +258,7 @@ export default function CheckoutPage() {
                         <div className="mt-8 bg-blue-50 p-4 rounded-lg flex items-start gap-3">
                             <ShieldCheck className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
                             <p className="text-sm text-blue-700">
-                                This is a secure checkout. Your payment details are encrypted.
+                                Secure Checkout (Demo Mode)
                             </p>
                         </div>
                     </div>
