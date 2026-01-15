@@ -152,7 +152,7 @@ function CheckoutForm({ user, items, cartTotal, appliedCoupon, finalTotal, formD
 
             {errorMessage && <div className="text-red-600 text-sm mt-2">{errorMessage}</div>}
 
-            <Button type="submit" className="w-full mt-6" size="lg" disabled={loading || !stripe || !elements}>
+            <Button type="submit" className="w-full mt-6" size="lg" disabled={loading}>
                 {loading ? (
                     <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
