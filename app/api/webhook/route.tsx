@@ -4,12 +4,6 @@ import { createClient } from '@supabase/supabase-js'
 // Removed local client import to avoid confusion
 import { OrderConfirmationTemplate } from '@/components/email/OrderConfirmationTemplate'
 
-// Need to allow reading raw body for signature verification
-export const config = {
-    api: {
-        bodyParser: false,
-    },
-}
 
 export async function POST(request: Request) {
     try {
