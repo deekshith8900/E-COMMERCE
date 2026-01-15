@@ -173,7 +173,7 @@ export default function CheckoutPage() {
                                 <h3 className="text-sm font-medium mb-3">Payment Method</h3>
                                 <div className="bg-slate-50 p-4 rounded-md border border-slate-200 flex items-center gap-3">
                                     <CreditCard className="text-slate-500 w-5 h-5" />
-                                    <span className="text-sm text-slate-700 font-medium">Credit Card (Simulated)</span>
+                                    <span className="text-sm text-slate-700 font-medium">Credit Card</span>
                                 </div>
                             </div>
 
